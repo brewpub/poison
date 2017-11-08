@@ -83,6 +83,7 @@ defprotocol Poison.Encoder do
   @typep indent :: non_neg_integer
   @typep offset :: non_neg_integer
   @typep strict_keys :: boolean
+  @typep map_encoder :: module
 
   @type options :: %{
     optional(:escape) => escape,
@@ -90,6 +91,7 @@ defprotocol Poison.Encoder do
     optional(:indent) => indent,
     optional(:offset) => offset,
     optional(:strict_keys) => strict_keys,
+    optional(:map_encoder) => map_encoder,
   }
 
   @spec encode(t, options) :: iodata
@@ -236,6 +238,7 @@ defimpl Poison.Encoder, for: Map do
   def encode(map, options) do
     map
     |> strict_keys(Map.get(options, :strict_keys, false))
+    |> custom_encode(Map.get(options, :map_encoder, nil))
     |> encode(pretty(options), options)
   end
 
@@ -267,6 +270,11 @@ defimpl Poison.Encoder, for: Map do
       end
     end)
     map
+  end
+
+  defp custom_encode(map, nil), do: map
+  defp custom_encode(map, custom_mapper) do
+    apply(custom_mapper, :encode, [map])
   end
 end
 
